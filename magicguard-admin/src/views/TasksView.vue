@@ -284,9 +284,6 @@ const loadDatasources = async () => {
   } catch (error) {
     datasources.value = []
   }
-  } catch (error) {
-    console.error('加载数据源失败')
-  }
 }
 
 const showCreateDialog = () => {
