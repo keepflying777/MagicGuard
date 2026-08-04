@@ -24,7 +24,7 @@
           :class="{ active: loginType === 'ukey' }"
           @click="handleUkeyLogin"
         >
-          <el-icon><Shield /></el-icon>
+          <el-icon><Key /></el-icon>
           <span>U-Key登录</span>
         </div>
       </div>
@@ -138,7 +138,7 @@
 <script setup>
 import { ref, reactive, onMounted } from 'vue'
 import { ElMessage } from 'element-plus'
-import { User, Lock, Key, Shield, RefreshRight } from '@element-plus/icons-vue'
+import { User, Lock, Key, RefreshRight } from '@element-plus/icons-vue'
 
 const emit = defineEmits(['login-success'])
 
