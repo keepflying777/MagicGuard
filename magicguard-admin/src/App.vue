@@ -36,6 +36,16 @@
             <el-icon><List /></el-icon>
             <template #title>脱敏任务</template>
           </el-menu-item>
+
+          <div class="menu-title" style="margin-top: 20px;">系统管理</div>
+          <el-menu-item index="logs">
+            <el-icon><Document /></el-icon>
+            <template #title>日志管理</template>
+          </el-menu-item>
+          <el-menu-item index="users">
+            <el-icon><User /></el-icon>
+            <template #title>用户管理</template>
+          </el-menu-item>
         </el-menu>
 
         <div class="sidebar-footer">
@@ -77,6 +87,8 @@ import KeysView from './views/KeysView.vue'
 import RulesView from './views/RulesView.vue'
 import DatasourcesView from './views/DatasourcesView.vue'
 import TasksView from './views/TasksView.vue'
+import LogManagementView from './views/LogManagementView.vue'
+import UserManagementView from './views/UserManagementView.vue'
 
 const activeMenu = ref('keys')
 const currentTime = ref('')
@@ -87,7 +99,9 @@ const currentView = computed(() => {
     keys: KeysView,
     rules: RulesView,
     datasources: DatasourcesView,
-    tasks: TasksView
+    tasks: TasksView,
+    logs: LogManagementView,
+    users: UserManagementView
   }
   return views[activeMenu.value] || KeysView
 })
@@ -97,7 +111,9 @@ const pageTitle = computed(() => {
     keys: '密钥管理',
     rules: '脱敏规则',
     datasources: '数据源',
-    tasks: '脱敏任务'
+    tasks: '脱敏任务',
+    logs: '日志管理',
+    users: '用户管理'
   }
   return titles[activeMenu.value] || ''
 })
