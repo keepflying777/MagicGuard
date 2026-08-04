@@ -263,16 +263,27 @@ const failedCount = computed(() => tasks.value.filter(t => t.status === 'FAILED'
 const loadTasks = async () => {
   try {
     const response = await fetch(`${API_BASE}/tasks`)
-    tasks.value = await response.json()
+    if (response.ok) {
+      tasks.value = await response.json()
+    } else {
+      tasks.value = []
+    }
   } catch (error) {
-    ElMessage.error('加载任务列表失败')
+    tasks.value = []
   }
 }
 
 const loadDatasources = async () => {
   try {
     const response = await fetch(`${API_BASE}/datasources`)
-    datasources.value = await response.json()
+    if (response.ok) {
+      datasources.value = await response.json()
+    } else {
+      datasources.value = []
+    }
+  } catch (error) {
+    datasources.value = []
+  }
   } catch (error) {
     console.error('加载数据源失败')
   }

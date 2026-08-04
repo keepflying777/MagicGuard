@@ -215,9 +215,13 @@ const getAlgorithmLabel = (alg) => {
 const loadRules = async () => {
   try {
     const response = await fetch(`${API_BASE}/rules`)
-    rules.value = await response.json()
+    if (response.ok) {
+      rules.value = await response.json()
+    } else {
+      rules.value = []
+    }
   } catch (error) {
-    ElMessage.error('加载规则列表失败')
+    rules.value = []
   }
 }
 

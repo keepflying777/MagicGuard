@@ -185,9 +185,13 @@ const getTypeTag = (type) => {
 const loadDatasources = async () => {
   try {
     const response = await fetch(`${API_BASE}/datasources`)
-    datasources.value = await response.json()
+    if (response.ok) {
+      datasources.value = await response.json()
+    } else {
+      datasources.value = []
+    }
   } catch (error) {
-    ElMessage.error('加载数据源列表失败')
+    datasources.value = []
   }
 }
 

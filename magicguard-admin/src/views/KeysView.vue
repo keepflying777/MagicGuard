@@ -250,9 +250,13 @@ const getStatusText = (status) => {
 const loadKeys = async () => {
   try {
     const response = await fetch(`${API_BASE}/keys`)
-    keys.value = await response.json()
+    if (response.ok) {
+      keys.value = await response.json()
+    } else {
+      keys.value = []
+    }
   } catch (error) {
-    ElMessage.error('加载密钥列表失败')
+    keys.value = []
   }
 }
 
