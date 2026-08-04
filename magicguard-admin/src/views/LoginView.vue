@@ -129,7 +129,7 @@
       </div>
 
       <div class="login-footer">
-        <span class="version">v1.0.0</span>
+        <span class="version">v5.1.0</span>
       </div>
     </div>
   </div>

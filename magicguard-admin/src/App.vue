@@ -66,10 +66,13 @@
               <span class="role">{{ currentUser?.role === 'ADMIN' ? '管理员' : '用户' }}</span>
             </div>
           </div>
-          <el-button type="text" class="logout-btn" @click="handleLogout">
-            <el-icon><SwitchButton /></el-icon>
-            退出登录
-          </el-button>
+          <div class="footer-bottom">
+            <span class="version">v{{ APP_VERSION }}</span>
+            <el-button type="text" class="logout-btn" @click="handleLogout">
+              <el-icon><SwitchButton /></el-icon>
+              退出
+            </el-button>
+          </div>
         </div>
       </el-aside>
 
@@ -128,6 +131,8 @@ import TasksView from './views/TasksView.vue'
 import LogManagementView from './views/LogManagementView.vue'
 import UserManagementView from './views/UserManagementView.vue'
 import UkeyManagementView from './views/UkeyManagementView.vue'
+
+const APP_VERSION = '5.1.0'
 import LoginView from './views/LoginView.vue'
 
 const router = useRouter()
@@ -373,7 +378,7 @@ body {
 .user-info {
   display: flex;
   align-items: center;
-  margin-bottom: 12px;
+  margin-bottom: 8px;
 }
 
 .user-detail {
@@ -393,16 +398,29 @@ body {
   color: rgba(255, 255, 255, 0.5);
 }
 
+.footer-bottom {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-top: 8px;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.footer-bottom .version {
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.4);
+  font-weight: 500;
+}
+
 .logout-btn {
-  width: 100%;
   color: rgba(255, 255, 255, 0.65);
   display: flex;
   align-items: center;
-  gap: 8px;
-  justify-content: center;
-  padding: 10px;
-  border-radius: 8px;
+  gap: 4px;
+  padding: 6px 10px;
+  border-radius: 6px;
   transition: all 0.3s;
+  font-size: 12px;
 }
 
 .logout-btn:hover {
