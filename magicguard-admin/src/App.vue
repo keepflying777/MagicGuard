@@ -1,41 +1,73 @@
 <template>
   <el-config-provider :locale="zhCn">
     <el-layout class="layout">
-      <el-aside width="200px" class="aside">
-        <div class="logo">MagicGuard</div>
+      <!-- 侧边栏 -->
+      <el-aside width="240px" class="aside">
+        <div class="logo-container">
+          <div class="logo-icon">
+            <el-icon :size="32"><Lock /></el-icon>
+          </div>
+          <div class="logo-text">
+            <span class="logo-name">MagicGuard</span>
+            <span class="logo-sub">数据安全平台</span>
+          </div>
+        </div>
+
         <el-menu
           :default-active="activeMenu"
           class="menu"
           @select="handleMenuSelect"
+          :collapse="false"
         >
+          <div class="menu-title">安全管理</div>
           <el-menu-item index="keys">
             <el-icon><Key /></el-icon>
-            <span>密钥管理</span>
+            <template #title>密钥管理</template>
           </el-menu-item>
           <el-menu-item index="rules">
             <el-icon><Filter /></el-icon>
-            <span>脱敏规则</span>
+            <template #title>脱敏规则</template>
           </el-menu-item>
           <el-menu-item index="datasources">
             <el-icon><Connection /></el-icon>
-            <span>数据源</span>
+            <template #title>数据源</template>
           </el-menu-item>
           <el-menu-item index="tasks">
             <el-icon><List /></el-icon>
-            <span>脱敏任务</span>
+            <template #title>脱敏任务</template>
           </el-menu-item>
         </el-menu>
+
+        <div class="sidebar-footer">
+          <div class="version">v1.0.0</div>
+        </div>
       </el-aside>
 
-      <el-container>
+      <!-- 主内容区 -->
+      <el-container class="main-container">
+        <!-- 顶部栏 -->
         <el-header class="header">
-          <div class="header-title">{{ pageTitle }}</div>
+          <div class="header-left">
+            <h2 class="page-title">{{ pageTitle }}</h2>
+          </div>
+          <div class="header-right">
+            <div class="header-time">{{ currentTime }}</div>
+            <div class="header-badge">
+              <el-badge :value="statusCount" class="badge">
+                <el-icon :size="20"><Bell /></el-icon>
+              </el-badge>
+            </div>
+          </div>
         </el-header>
+
+        <!-- 页面内容 -->
         <el-main class="main">
-          <KeysView v-if="activeMenu === 'keys'" />
-          <RulesView v-if="activeMenu === 'rules'" />
-          <DatasourcesView v-if="activeMenu === 'datasources'" />
-          <TasksView v-if="activeMenu === 'tasks'" />
+          <transition name="fade" mode="out-in">
+            <KeysView v-if="activeMenu === 'keys'" />
+            <RulesView v-if="activeMenu === 'rules'" />
+            <DatasourcesView v-if="activeMenu === 'datasources'" />
+            <TasksView v-if="activeMenu === 'tasks'" />
+          </transition>
         </el-main>
       </el-container>
     </el-layout>
@@ -43,13 +75,15 @@
 </template>
 
 <script setup>
-import { ref, computed } from 'vue'
+import { ref, computed, onMounted, onUnmounted } from 'vue'
 import KeysView from './views/KeysView.vue'
 import RulesView from './views/RulesView.vue'
 import DatasourcesView from './views/DatasourcesView.vue'
 import TasksView from './views/TasksView.vue'
 
 const activeMenu = ref('keys')
+const currentTime = ref('')
+const statusCount = ref(3)
 
 const pageTitle = computed(() => {
   const titles = {
@@ -64,9 +98,34 @@ const pageTitle = computed(() => {
 const handleMenuSelect = (index) => {
   activeMenu.value = index
 }
+
+const updateTime = () => {
+  const now = new Date()
+  const options = {
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit'
+  }
+  currentTime.value = now.toLocaleString('zh-CN', options)
+}
+
+let timeTimer
+onMounted(() => {
+  updateTime()
+  timeTimer = setInterval(updateTime, 1000)
+})
+
+onUnmounted(() => {
+  clearInterval(timeTimer)
+})
 </script>
 
 <style>
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+
 * {
   margin: 0;
   padding: 0;
@@ -74,58 +133,215 @@ const handleMenuSelect = (index) => {
 }
 
 body {
-  font-family: 'Helvetica Neue', Helvetica, 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', Arial, sans-serif;
+  font-family: 'Inter', 'Helvetica Neue', Helvetica, 'PingFang SC', 'Microsoft YaHei', Arial, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* 自定义滚动条 */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: #f0f2f5;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #c0c4cc;
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #909399;
 }
 
 .layout {
   height: 100vh;
+  display: flex;
 }
 
+/* 侧边栏 */
 .aside {
-  background-color: #001529;
+  background: linear-gradient(180deg, #1a1a2e 0%, #16213e 100%);
+  display: flex;
+  flex-direction: column;
+  box-shadow: 4px 0 20px rgba(0, 0, 0, 0.15);
+  z-index: 100;
 }
 
-.logo {
-  height: 60px;
-  line-height: 60px;
-  text-align: center;
+.logo-container {
+  display: flex;
+  align-items: center;
+  padding: 24px 20px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.logo-icon {
+  width: 48px;
+  height: 48px;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   color: #fff;
-  font-size: 18px;
-  font-weight: bold;
-  background-color: #002140;
+  margin-right: 14px;
+  box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
 }
 
+.logo-text {
+  display: flex;
+  flex-direction: column;
+}
+
+.logo-name {
+  font-size: 18px;
+  font-weight: 700;
+  color: #fff;
+  letter-spacing: 0.5px;
+}
+
+.logo-sub {
+  font-size: 11px;
+  color: rgba(255, 255, 255, 0.5);
+  margin-top: 2px;
+}
+
+/* 菜单 */
 .menu {
+  flex: 1;
+  background: transparent;
   border-right: none;
-  background-color: #001529;
+  padding: 16px 0;
+}
+
+.menu-title {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  color: rgba(255, 255, 255, 0.35);
+  padding: 20px 20px 8px;
 }
 
 .menu .el-menu-item {
-  color: rgba(255, 255, 255, 0.7);
+  height: 50px;
+  line-height: 50px;
+  color: rgba(255, 255, 255, 0.65);
+  margin: 4px 12px;
+  padding-left: 20px !important;
+  border-radius: 10px;
+  transition: all 0.3s ease;
 }
 
-.menu .el-menu-item:hover,
-.menu .el-menu-item.is-active {
-  background-color: #1890ff;
+.menu .el-menu-item:hover {
+  background: rgba(255, 255, 255, 0.08);
   color: #fff;
 }
 
+.menu .el-menu-item.is-active {
+  background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);
+  color: #fff;
+  box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
+}
+
+.menu .el-menu-item .el-icon {
+  font-size: 18px;
+  margin-right: 12px;
+}
+
+.sidebar-footer {
+  padding: 20px;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.version {
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.3);
+  text-align: center;
+}
+
+/* 主内容区 */
+.main-container {
+  flex: 1;
+  background: #f5f7fa;
+  display: flex;
+  flex-direction: column;
+}
+
+/* 顶部栏 */
 .header {
-  background-color: #fff;
-  border-bottom: 1px solid #e8e8e8;
+  background: #fff;
+  border-bottom: 1px solid #ebeef5;
   display: flex;
   align-items: center;
-  padding: 0 20px;
+  justify-content: space-between;
+  padding: 0 28px;
+  height: 70px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
 }
 
-.header-title {
-  font-size: 18px;
+.header-left {
+  display: flex;
+  align-items: center;
+}
+
+.page-title {
+  font-size: 20px;
+  font-weight: 600;
+  color: #1a1a2e;
+}
+
+.header-right {
+  display: flex;
+  align-items: center;
+  gap: 24px;
+}
+
+.header-time {
+  font-size: 13px;
+  color: #909399;
   font-weight: 500;
-  color: #333;
 }
 
+.header-badge .badge {
+  cursor: pointer;
+}
+
+.header-badge .el-icon {
+  color: #606266;
+  padding: 8px;
+  background: #f5f7fa;
+  border-radius: 8px;
+  transition: all 0.3s;
+}
+
+.header-badge .el-icon:hover {
+  background: #ebeef5;
+  color: #409eff;
+}
+
+/* 主内容 */
 .main {
-  background-color: #f0f2f5;
-  padding: 20px;
+  flex: 1;
+  padding: 24px 28px;
+  overflow-y: auto;
+}
+
+/* 过渡动画 */
+.fade-enter-active,
+.fade-leave-active {
+  transition: opacity 0.25s ease, transform 0.25s ease;
+}
+
+.fade-enter-from {
+  opacity: 0;
+  transform: translateY(10px);
+}
+
+.fade-leave-to {
+  opacity: 0;
+  transform: translateY(-10px);
 }
 </style>
