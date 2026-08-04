@@ -63,10 +63,7 @@
         <!-- 页面内容 -->
         <el-main class="main">
           <transition name="fade" mode="out-in">
-            <KeysView v-if="activeMenu === 'keys'" />
-            <RulesView v-if="activeMenu === 'rules'" />
-            <DatasourcesView v-if="activeMenu === 'datasources'" />
-            <TasksView v-if="activeMenu === 'tasks'" />
+            <component :is="currentView" :key="activeMenu" />
           </transition>
         </el-main>
       </el-container>
@@ -84,6 +81,16 @@ import TasksView from './views/TasksView.vue'
 const activeMenu = ref('keys')
 const currentTime = ref('')
 const statusCount = ref(3)
+
+const currentView = computed(() => {
+  const views = {
+    keys: KeysView,
+    rules: RulesView,
+    datasources: DatasourcesView,
+    tasks: TasksView
+  }
+  return views[activeMenu.value] || KeysView
+})
 
 const pageTitle = computed(() => {
   const titles = {
