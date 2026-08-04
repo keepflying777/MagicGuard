@@ -1,6 +1,10 @@
 <template>
   <el-config-provider :locale="zhCn">
-    <el-layout class="layout">
+    <!-- 登录页面 -->
+    <router-view v-if="!isLoggedIn" />
+
+    <!-- 主页面 -->
+    <el-layout v-else class="layout">
       <!-- 侧边栏 -->
       <el-aside width="240px" class="aside">
         <div class="logo-container">
@@ -49,7 +53,19 @@
         </el-menu>
 
         <div class="sidebar-footer">
-          <div class="version">v1.0.0</div>
+          <div class="user-info">
+            <el-avatar :size="32" :style="{ background: avatarColor }">
+              {{ currentUser?.username?.charAt(0).toUpperCase() }}
+            </el-avatar>
+            <div class="user-detail">
+              <span class="username">{{ currentUser?.nickname || currentUser?.username }}</span>
+              <span class="role">{{ currentUser?.role === 'ADMIN' ? '管理员' : '用户' }}</span>
+            </div>
+          </div>
+          <el-button type="text" class="logout-btn" @click="handleLogout">
+            <el-icon><SwitchButton /></el-icon>
+            退出登录
+          </el-button>
         </div>
       </el-aside>
 
@@ -62,11 +78,28 @@
           </div>
           <div class="header-right">
             <div class="header-time">{{ currentTime }}</div>
-            <div class="header-badge">
-              <el-badge :value="statusCount" class="badge">
-                <el-icon :size="20"><Bell /></el-icon>
-              </el-badge>
-            </div>
+            <el-dropdown @command="handleCommand">
+              <div class="user-dropdown">
+                <el-avatar :size="32" :style="{ background: avatarColor }">
+                  {{ currentUser?.username?.charAt(0).toUpperCase() }}
+                </el-avatar>
+                <span class="dropdown-text">{{ currentUser?.nickname }}</span>
+                <el-icon><ArrowDown /></el-icon>
+              </div>
+              <template #dropdown>
+                <el-dropdown-menu>
+                  <el-dropdown-item command="profile">
+                    <el-icon><User /></el-icon> 个人中心
+                  </el-dropdown-item>
+                  <el-dropdown-item command="settings">
+                    <el-icon><Setting /></el-icon> 设置
+                  </el-dropdown-item>
+                  <el-dropdown-item command="logout" divided>
+                    <el-icon><SwitchButton /></el-icon> 退出登录
+                  </el-dropdown-item>
+                </el-dropdown-menu>
+              </template>
+            </el-dropdown>
           </div>
         </el-header>
 
@@ -82,7 +115,8 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted, onUnmounted } from 'vue'
+import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
+import { useRouter } from 'vue-router'
 import KeysView from './views/KeysView.vue'
 import RulesView from './views/RulesView.vue'
 import DatasourcesView from './views/DatasourcesView.vue'
@@ -90,9 +124,11 @@ import TasksView from './views/TasksView.vue'
 import LogManagementView from './views/LogManagementView.vue'
 import UserManagementView from './views/UserManagementView.vue'
 
+const router = useRouter()
 const activeMenu = ref('keys')
 const currentTime = ref('')
-const statusCount = ref(3)
+const isLoggedIn = ref(false)
+const currentUser = ref(null)
 
 const currentView = computed(() => {
   const views = {
@@ -118,8 +154,30 @@ const pageTitle = computed(() => {
   return titles[activeMenu.value] || ''
 })
 
+const avatarColor = computed(() => {
+  const colors = ['#667eea', '#764ba2', '#f093fb', '#f5576c', '#4facfe', '#00f2fe', '#43e97b', '#fa709a']
+  if (!currentUser.value?.username) return colors[0]
+  let hash = 0
+  for (let i = 0; i < currentUser.value.username.length; i++) {
+    hash = currentUser.value.username.charCodeAt(i) + ((hash << 5) - hash)
+  }
+  return colors[Math.abs(hash) % colors.length]
+})
+
 const handleMenuSelect = (index) => {
   activeMenu.value = index
+}
+
+const handleCommand = (command) => {
+  if (command === 'logout') {
+    handleLogout()
+  }
+}
+
+const handleLogout = () => {
+  localStorage.removeItem('magicguard_user')
+  localStorage.removeItem('magicguard_remember')
+  router.push('/login')
 }
 
 const updateTime = () => {
@@ -135,14 +193,33 @@ const updateTime = () => {
   currentTime.value = now.toLocaleString('zh-CN', options)
 }
 
+const checkLogin = () => {
+  const user = localStorage.getItem('magicguard_user')
+  if (user) {
+    try {
+      currentUser.value = JSON.parse(user)
+      isLoggedIn.value = true
+    } catch (e) {
+      isLoggedIn.value = false
+    }
+  } else {
+    isLoggedIn.value = false
+  }
+}
+
 let timeTimer
 onMounted(() => {
+  checkLogin()
   updateTime()
   timeTimer = setInterval(updateTime, 1000)
 })
 
 onUnmounted(() => {
   clearInterval(timeTimer)
+})
+
+watch(() => router.currentRoute.value.path, () => {
+  checkLogin()
 })
 </script>
 
@@ -161,7 +238,6 @@ body {
   -moz-osx-font-smoothing: grayscale;
 }
 
-/* 自定义滚动条 */
 ::-webkit-scrollbar {
   width: 6px;
   height: 6px;
@@ -275,14 +351,48 @@ body {
 }
 
 .sidebar-footer {
-  padding: 20px;
+  padding: 16px 20px;
   border-top: 1px solid rgba(255, 255, 255, 0.1);
 }
 
-.version {
-  font-size: 12px;
-  color: rgba(255, 255, 255, 0.3);
-  text-align: center;
+.user-info {
+  display: flex;
+  align-items: center;
+  margin-bottom: 12px;
+}
+
+.user-detail {
+  display: flex;
+  flex-direction: column;
+  margin-left: 10px;
+}
+
+.user-detail .username {
+  font-size: 14px;
+  font-weight: 500;
+  color: #fff;
+}
+
+.user-detail .role {
+  font-size: 11px;
+  color: rgba(255, 255, 255, 0.5);
+}
+
+.logout-btn {
+  width: 100%;
+  color: rgba(255, 255, 255, 0.65);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  justify-content: center;
+  padding: 10px;
+  border-radius: 8px;
+  transition: all 0.3s;
+}
+
+.logout-btn:hover {
+  background: rgba(255, 255, 255, 0.1);
+  color: #fff;
 }
 
 /* 主内容区 */
@@ -328,21 +438,24 @@ body {
   font-weight: 500;
 }
 
-.header-badge .badge {
+.user-dropdown {
+  display: flex;
+  align-items: center;
+  gap: 10px;
   cursor: pointer;
-}
-
-.header-badge .el-icon {
-  color: #606266;
-  padding: 8px;
-  background: #f5f7fa;
+  padding: 6px 12px;
   border-radius: 8px;
   transition: all 0.3s;
 }
 
-.header-badge .el-icon:hover {
-  background: #ebeef5;
-  color: #409eff;
+.user-dropdown:hover {
+  background: #f5f7fa;
+}
+
+.dropdown-text {
+  font-size: 14px;
+  font-weight: 500;
+  color: #303133;
 }
 
 /* 主内容 */
