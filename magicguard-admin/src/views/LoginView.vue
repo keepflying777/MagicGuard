@@ -59,11 +59,11 @@
 
 <script setup>
 import { ref, reactive } from 'vue'
-import { useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import { User, Lock } from '@element-plus/icons-vue'
 
-const router = useRouter()
+const emit = defineEmits(['login-success'])
+
 const loginFormRef = ref(null)
 const loading = ref(false)
 
@@ -116,7 +116,7 @@ const handleLogin = async () => {
         }
 
         ElMessage.success('登录成功')
-        router.push('/')
+        emit('login-success')
       } else {
         ElMessage.error('用户名或密码错误')
       }

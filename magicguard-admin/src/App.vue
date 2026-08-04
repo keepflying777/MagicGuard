@@ -1,7 +1,7 @@
 <template>
   <el-config-provider :locale="zhCn">
     <!-- 登录页面 -->
-    <router-view v-if="!isLoggedIn" />
+    <LoginView v-if="!isLoggedIn" @login-success="onLoginSuccess" />
 
     <!-- 主页面 -->
     <el-layout v-else class="layout">
@@ -123,6 +123,7 @@ import DatasourcesView from './views/DatasourcesView.vue'
 import TasksView from './views/TasksView.vue'
 import LogManagementView from './views/LogManagementView.vue'
 import UserManagementView from './views/UserManagementView.vue'
+import LoginView from './views/LoginView.vue'
 
 const router = useRouter()
 const activeMenu = ref('keys')
@@ -177,7 +178,18 @@ const handleCommand = (command) => {
 const handleLogout = () => {
   localStorage.removeItem('magicguard_user')
   localStorage.removeItem('magicguard_remember')
-  router.push('/login')
+  currentUser.value = null
+  isLoggedIn.value = false
+}
+
+const onLoginSuccess = () => {
+  const user = localStorage.getItem('magicguard_user')
+  if (user) {
+    try {
+      currentUser.value = JSON.parse(user)
+      isLoggedIn.value = true
+    } catch (e) {}
+  }
 }
 
 const updateTime = () => {
@@ -216,10 +228,6 @@ onMounted(() => {
 
 onUnmounted(() => {
   clearInterval(timeTimer)
-})
-
-watch(() => router.currentRoute.value.path, () => {
-  checkLogin()
 })
 </script>
 
