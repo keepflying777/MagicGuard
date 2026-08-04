@@ -50,6 +50,10 @@
             <el-icon><User /></el-icon>
             <template #title>用户管理</template>
           </el-menu-item>
+          <el-menu-item index="ukeys">
+            <el-icon><Key /></el-icon>
+            <template #title>U-Key管理</template>
+          </el-menu-item>
         </el-menu>
 
         <div class="sidebar-footer">
@@ -123,6 +127,7 @@ import DatasourcesView from './views/DatasourcesView.vue'
 import TasksView from './views/TasksView.vue'
 import LogManagementView from './views/LogManagementView.vue'
 import UserManagementView from './views/UserManagementView.vue'
+import UkeyManagementView from './views/UkeyManagementView.vue'
 import LoginView from './views/LoginView.vue'
 
 const router = useRouter()
@@ -138,7 +143,8 @@ const currentView = computed(() => {
     datasources: DatasourcesView,
     tasks: TasksView,
     logs: LogManagementView,
-    users: UserManagementView
+    users: UserManagementView,
+    ukeys: UkeyManagementView
   }
   return views[activeMenu.value] || KeysView
 })
@@ -150,7 +156,8 @@ const pageTitle = computed(() => {
     datasources: '数据源',
     tasks: '脱敏任务',
     logs: '日志管理',
-    users: '用户管理'
+    users: '用户管理',
+    ukeys: 'U-Key管理'
   }
   return titles[activeMenu.value] || ''
 })
