@@ -138,7 +138,7 @@ import { ElMessage, ElMessageBox } from 'element-plus'
 const API_BASE = 'http://localhost:8080/api'
 
 const tasks = ref([])
-const datasources = ref []
+const datasources = ref([])
 const dialogVisible = ref(false)
 const detailDialogVisible = ref(false)
 const currentTask = ref(null)
