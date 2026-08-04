@@ -18,16 +18,17 @@ import java.util.List;
 public class KeyManagementService {
 
     private final EncryptionKeyRepository keyRepository;
+    private final String masterKey;
 
     /**
      * 主密钥，用于加密 DEK（数据加密密钥）
      * 生产环境应从配置文件或环境变量读取
      */
-    @Value("${magicguard.sm4-key}")
-    private String masterKey;
-
-    public KeyManagementService(EncryptionKeyRepository keyRepository) {
+    public KeyManagementService(
+            EncryptionKeyRepository keyRepository,
+            @Value("${magicguard.sm4-key}") String masterKey) {
         this.keyRepository = keyRepository;
+        this.masterKey = masterKey;
     }
 
     /**

@@ -19,4 +19,4 @@ mybatis-plus:
 
 magicguard:
   # SM4 密钥（Base64 编码，32 字符）
-  sm4-key:0123456789ABCDEF0123456789ABCDEF
+  sm4-key: 0123456789ABCDEF0123456789ABCDEF
