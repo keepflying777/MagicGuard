@@ -120,7 +120,11 @@ cd /opt/MagicGuard
 #### 2. 初始化数据库
 
 ```bash
-mysql -u root -p < magicguard-service/src/main/resources/schema.sql
+# 创建数据库
+mysql -u root -p -e "CREATE DATABASE IF NOT EXISTS magicguard;"
+
+# 导入表结构
+mysql -u root -p magicguard < magicguard-service/src/main/resources/schema.sql
 ```
 
 #### 3. 配置数据库连接
