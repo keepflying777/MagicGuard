@@ -193,12 +193,36 @@ sudo systemctl enable nginx
 
 ```bash
 cd /opt/MagicGuard/magicguard-service
-nohup java -jar target/magicguard-service-1.0.0-SNAPSHOT.jar > app.log 2>&1 &
+mvn spring-boot:run &
+```
+
+#### 8. 启动前端控制台
+
+```bash
+cd /opt/MagicGuard/magicguard-admin
+npm run dev -- --host 0.0.0.0 --port 3000 &
 ```
 
 ---
 
 ## 快速开始
+
+### 服务启动（服务器重启后）
+
+```bash
+# 1. 启动 MySQL
+systemctl start mysqld
+
+# 2. 启动后端
+cd /opt/MagicGuard/magicguard-service
+mvn spring-boot:run &
+
+# 3. 启动前端
+cd /opt/MagicGuard/magicguard-admin
+npm run dev -- --host 0.0.0.0 --port 3000 &
+```
+
+### 默认账号
 
 ### 默认账号
 
