@@ -109,7 +109,7 @@ start_backend() {
     nohup mvn spring-boot:run > $LOG_DIR/backend.log 2>&1 &
     echo $! > $PID_DIR/backend.pid
 
-    sleep 15
+    sleep 25
 
     if curl -s http://localhost:8080/api/keys &> /dev/null; then
         log_info "Backend started successfully (PID: $(cat $PID_DIR/backend.pid))"
