@@ -210,6 +210,11 @@ npm run dev -- --host 0.0.0.0 --port 3000 &
 ### 服务启动（服务器重启后）
 
 ```bash
+# 使用管理脚本（推荐）
+cd /opt/MagicGuard
+./magicguard.sh restart
+
+# 或手动启动
 # 1. 启动 MySQL
 systemctl start mysqld
 
@@ -220,6 +225,15 @@ mvn spring-boot:run &
 # 3. 启动前端
 cd /opt/MagicGuard/magicguard-admin
 npm run dev -- --host 0.0.0.0 --port 3000 &
+```
+
+### 服务管理命令
+
+```bash
+./magicguard.sh start    # 启动所有服务
+./magicguard.sh stop     # 停止所有服务
+./magicguard.sh restart  # 重启所有服务
+./magicguard.sh status   # 查看服务状态
 ```
 
 ### 默认账号
@@ -415,8 +429,8 @@ npm run dev -- --host 0.0.0.0 --port 3000 &
 
 ## 版本信息
 
-- 当前版本：v1.0.0
-- 发布日期：2026-08-04
+- 当前版本：v5.1.0
+- 发布日期：2026-08-20
 - GitHub：https://github.com/keepflying777/MagicGuard
 
 ---
