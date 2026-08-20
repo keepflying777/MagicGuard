@@ -204,7 +204,7 @@
 import { ref, computed, onMounted } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 
-const API_BASE = 'http://localhost:8080/api'
+const API_BASE = 'http://192.168.27.164:8080/api'
 
 const keys = ref([])
 const generateDialogVisible = ref(false)
