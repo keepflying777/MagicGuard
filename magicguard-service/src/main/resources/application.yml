@@ -17,6 +17,13 @@ mybatis-plus:
     map-underscore-to-camel-case: true
     log-impl: org.apache.ibatis.logging.stdout.StdOutImpl
 
+logging:
+  level:
+    com.magicguard: DEBUG
+    com.magicguard.mapper: TRACE
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n"
+
 magicguard:
   # SM4 密钥（Base64 编码，32 字符）
   sm4-key: 0123456789ABCDEF0123456789ABCDEF
