@@ -165,8 +165,13 @@ public class MaskTaskService {
             List<Map<String, Object>> maskedData = applyMask(data, columnRuleMap);
 
             // 写入目标
-            if ("DATABASE".equals(targetType) && targetDs != null) {
-                writeToTarget(targetDs, tableName, maskedData);
+            if ("DATABASE".equals(targetType)) {
+                if (targetDs != null) {
+                    writeToTarget(targetDs, tableName, maskedData);
+                } else {
+                    // 同库脱敏，直接更新源表
+                    updateSource(sourceDs, tableName, data, maskedData, columnRuleMap.keySet());
+                }
             }
 
             log.info("表 {} 处理完成，共 {} 条数据", tableName, data.size());
@@ -265,6 +270,44 @@ public class MaskTaskService {
                 for (int i = 0; i < columns.length; i++) {
                     pstmt.setObject(i + 1, row.get(columns[i]));
                 }
+                pstmt.addBatch();
+            }
+
+            pstmt.executeBatch();
+        }
+    }
+
+    /**
+     * 更新源数据库（同库脱敏）
+     */
+    private void updateSource(DataSource ds, String tableName,
+                             List<Map<String, Object>> originalData,
+                             List<Map<String, Object>> maskedData,
+                             Set<String> maskedColumns) throws Exception {
+        if (originalData.isEmpty() || maskedColumns.isEmpty()) {
+            return;
+        }
+
+        String url = buildJdbcUrl(ds);
+        String[] columnArray = maskedColumns.toArray(new String[0]);
+        StringBuilder sql = new StringBuilder();
+        sql.append("UPDATE ").append(tableName).append(" SET ");
+        for (int i = 0; i < columnArray.length; i++) {
+            if (i > 0) sql.append(", ");
+            sql.append(columnArray[i]).append(" = ?");
+        }
+        sql.append(" WHERE id = ?");
+
+        try (Connection conn = DriverManager.getConnection(url, ds.getUsername(), ds.getEncryptedPassword());
+             PreparedStatement pstmt = conn.prepareStatement(sql.toString())) {
+
+            for (int i = 0; i < maskedData.size(); i++) {
+                Map<String, Object> maskedRow = maskedData.get(i);
+                Map<String, Object> originalRow = originalData.get(i);
+                for (int j = 0; j < columnArray.length; j++) {
+                    pstmt.setObject(j + 1, maskedRow.get(columnArray[j]));
+                }
+                pstmt.setObject(columnArray.length + 1, originalRow.get("id"));
                 pstmt.addBatch();
             }
 
