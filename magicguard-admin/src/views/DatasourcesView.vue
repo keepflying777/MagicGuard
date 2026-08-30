@@ -95,10 +95,11 @@
             </el-tag>
           </template>
         </el-table-column>
-        <el-table-column label="操作" width="180" fixed="right">
+        <el-table-column label="操作" width="240" fixed="right">
           <template #default="{ row }">
             <div class="action-buttons">
               <el-button size="small" type="success" plain @click="testConnection(row)">测试</el-button>
+              <el-button size="small" type="warning" plain @click="editDatasource(row)">编辑</el-button>
               <el-button size="small" type="danger" plain @click="deleteDatasource(row)">删除</el-button>
             </div>
           </template>
@@ -149,6 +150,37 @@
         <el-button type="primary" @click="createDatasource">确认添加</el-button>
       </template>
     </el-dialog>
+
+    <!-- 编辑数据源对话框 -->
+    <el-dialog v-model="editDialogVisible" title="编辑数据源" width="560px" class="custom-dialog">
+      <el-form :model="editForm" label-width="100px" class="custom-form">
+        <el-form-item label="数据源名称">
+          <el-input v-model="editForm.name" placeholder="请输入数据源名称" />
+        </el-form-item>
+        <el-form-item label="主机地址">
+          <el-input v-model="editForm.host" placeholder="如: localhost" />
+        </el-form-item>
+        <el-form-item label="端口">
+          <el-input-number v-model="editForm.port" :min="1" :max="65535" />
+        </el-form-item>
+        <el-form-item label="数据库名">
+          <el-input v-model="editForm.database" placeholder="请输入数据库名称" />
+        </el-form-item>
+        <el-form-item label="用户名">
+          <el-input v-model="editForm.username" placeholder="请输入用户名" />
+        </el-form-item>
+        <el-form-item label="密码">
+          <el-input v-model="editForm.password" type="password" placeholder="不修改请留空" show-password />
+        </el-form-item>
+        <el-form-item label="分组">
+          <el-input v-model="editForm.groupName" placeholder="如: 生产环境" />
+        </el-form-item>
+      </el-form>
+      <template #footer>
+        <el-button @click="editDialogVisible = false">取消</el-button>
+        <el-button type="primary" @click="updateDatasource">保存</el-button>
+      </template>
+    </el-dialog>
   </div>
 </template>
 
@@ -160,6 +192,7 @@ const API_BASE = 'http://192.168.27.164:8080/api'
 
 const datasources = ref([])
 const dialogVisible = ref(false)
+const editDialogVisible = ref(false)
 
 const dsForm = ref({
   name: '',
@@ -271,6 +304,59 @@ const deleteDatasource = async (ds) => {
     if (error !== 'cancel') {
       ElMessage.error('删除失败')
     }
+  }
+}
+
+const editForm = ref({
+  id: null,
+  name: '',
+  host: '',
+  port: 3306,
+  database: '',
+  username: '',
+  password: '',
+  groupName: ''
+})
+
+const editDatasource = (ds) => {
+  editForm.value = {
+    id: ds.id,
+    name: ds.datasourceName,
+    host: ds.host,
+    port: ds.port,
+    database: ds.databaseName,
+    username: ds.username,
+    password: '',
+    groupName: ds.groupName || ''
+  }
+  editDialogVisible.value = true
+}
+
+const updateDatasource = async () => {
+  if (!editForm.value.name) {
+    ElMessage.warning('请填写数据源名称')
+    return
+  }
+  try {
+    const response = await fetch(`${API_BASE}/datasources/${editForm.value.id}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        name: editForm.value.name,
+        host: editForm.value.host,
+        port: editForm.value.port,
+        database: editForm.value.database,
+        username: editForm.value.username,
+        password: editForm.value.password
+      })
+    })
+    if (response.ok) {
+      ElMessage.success('数据源更新成功')
+      editDialogVisible.value = false
+      loadDatasources()
+    }
+  } catch (error) {
+    ElMessage.error('数据源更新失败: ' + error.message)
   }
 }
 

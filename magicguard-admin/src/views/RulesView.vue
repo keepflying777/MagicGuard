@@ -94,10 +94,11 @@
           </template>
         </el-table-column>
         <el-table-column prop="createTime" label="创建时间" width="170" />
-        <el-table-column label="操作" width="180" fixed="right">
+        <el-table-column label="操作" width="240" fixed="right">
           <template #default="{ row }">
             <div class="action-buttons">
               <el-button size="small" type="primary" plain @click="testRule(row)">测试</el-button>
+              <el-button size="small" type="warning" plain @click="editRule(row)">编辑</el-button>
               <el-button size="small" type="danger" plain @click="deleteRule(row)">删除</el-button>
             </div>
           </template>
@@ -161,6 +162,37 @@
         </el-button>
       </template>
     </el-dialog>
+
+    <!-- 编辑规则对话框 -->
+    <el-dialog v-model="editDialogVisible" title="编辑脱敏规则" width="520px" class="custom-dialog">
+      <el-form :model="editForm" label-width="100px" class="custom-form">
+        <el-form-item label="规则名称">
+          <el-input v-model="editForm.ruleName" placeholder="请输入规则名称" />
+        </el-form-item>
+        <el-form-item label="算法类型">
+          <el-select v-model="editForm.algorithmType" placeholder="请选择算法" style="width: 100%">
+            <el-option v-for="alg in algorithms" :key="alg" :label="getAlgorithmLabel(alg)" :value="alg">
+              <span>{{ getAlgorithmLabel(alg) }}</span>
+            </el-option>
+          </el-select>
+        </el-form-item>
+        <el-form-item label="参数配置">
+          <el-input
+            v-model="editForm.paramsText"
+            type="textarea"
+            :rows="3"
+            placeholder='如: {"prefixLen": 3, "suffixLen": 4}'
+          />
+        </el-form-item>
+        <el-form-item label="优先级">
+          <el-input-number v-model="editForm.priority" :min="1" :max="1000" :step="10" />
+        </el-form-item>
+      </el-form>
+      <template #footer>
+        <el-button @click="editDialogVisible = false">取消</el-button>
+        <el-button type="primary" @click="updateRule">保存</el-button>
+      </template>
+    </el-dialog>
   </div>
 </template>
 
@@ -174,6 +206,7 @@ const rules = ref([])
 const algorithms = ref(['MASK', 'REPLACE', 'TRUNCATE', 'FPE', 'HASH'])
 const dialogVisible = ref(false)
 const testDialogVisible = ref(false)
+const editDialogVisible = ref(false)
 
 const ruleForm = ref({
   ruleName: '',
@@ -318,6 +351,55 @@ const deleteRule = async (rule) => {
     if (error !== 'cancel') {
       ElMessage.error('删除失败')
     }
+  }
+}
+
+const editForm = ref({
+  id: null,
+  ruleName: '',
+  algorithmType: 'MASK',
+  paramsText: '',
+  priority: 100
+})
+
+const editRule = (rule) => {
+  editForm.value = {
+    id: rule.id,
+    ruleName: rule.ruleName,
+    algorithmType: rule.algorithmType,
+    paramsText: rule.algorithmParams || '',
+    priority: rule.priority || 100
+  }
+  editDialogVisible.value = true
+}
+
+const updateRule = async () => {
+  if (!editForm.value.ruleName) {
+    ElMessage.warning('请填写规则名称')
+    return
+  }
+  try {
+    let params = {}
+    if (editForm.value.paramsText) {
+      params = JSON.parse(editForm.value.paramsText)
+    }
+    const response = await fetch(`${API_BASE}/rules/${editForm.value.id}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        ruleName: editForm.value.ruleName,
+        algorithmType: editForm.value.algorithmType,
+        params: params,
+        priority: editForm.value.priority
+      })
+    })
+    if (response.ok) {
+      ElMessage.success('规则更新成功')
+      editDialogVisible.value = false
+      loadRules()
+    }
+  } catch (error) {
+    ElMessage.error('规则更新失败: ' + error.message)
   }
 }
 
