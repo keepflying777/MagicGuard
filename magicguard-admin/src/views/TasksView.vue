@@ -100,7 +100,7 @@
           <template #default="{ row }">
             <div class="action-buttons">
               <el-button
-                v-if="row.status === 'PENDING'"
+                v-if="row.status === 'PENDING' || row.status === 'FAILED' || row.status === 'SUCCESS'"
                 size="small"
                 type="success"
                 plain
