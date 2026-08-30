@@ -152,7 +152,7 @@ public class DataSourceService {
      */
     private String buildJdbcUrl(DataSource ds) {
         return switch (ds.getDatasourceType()) {
-            case "MYSQL" -> String.format("jdbc:mysql://%s:%d/%s?useUnicode=true&characterEncoding=utf8mb4&allowPublicKeyRetrieval=true",
+            case "MYSQL" -> String.format("jdbc:mysql://%s:%d/%s?useUnicode=true&characterEncoding=UTF-8&allowPublicKeyRetrieval=true",
                     ds.getHost(), ds.getPort(), ds.getDatabaseName());
             case "ORACLE" -> String.format("jdbc:oracle:thin:@%s:%d:%s",
                     ds.getHost(), ds.getPort(), ds.getDatabaseName());
