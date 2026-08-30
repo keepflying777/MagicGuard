@@ -157,6 +157,16 @@
             <el-option label="文件" value="FILE" />
           </el-select>
         </el-form-item>
+        <el-form-item label="目标数据源" v-if="taskForm.targetType === 'DATABASE'">
+          <el-select v-model="taskForm.targetDatasourceCode" placeholder="同库脱敏请留空" clearable style="width: 100%">
+            <el-option
+              v-for="ds in datasources"
+              :key="ds.id"
+              :label="ds.datasourceName"
+              :value="ds.datasourceCode"
+            />
+          </el-select>
+        </el-form-item>
         <el-form-item label="文件路径" v-if="taskForm.targetType === 'FILE'">
           <el-input v-model="taskForm.targetFilePath" placeholder="不填则使用默认路径: /var/log/magicguard/exports/" />
         </el-form-item>
@@ -298,6 +308,7 @@ const taskForm = ref({
   sourceDatasourceCode: '',
   sourceTables: '',
   targetType: 'DATABASE',
+  targetDatasourceCode: '',
   targetFilePath: '',
   execType: 'FULL',
   scheduleType: 'IMMEDIATE',
@@ -340,10 +351,11 @@ const showCreateDialog = () => {
     sourceDatasourceCode: datasources.value[0]?.datasourceCode || '',
     sourceTables: '',
     targetType: 'DATABASE',
+    targetDatasourceCode: '',
+    targetFilePath: '',
     execType: 'FULL',
     scheduleType: 'IMMEDIATE',
-    maskRulesText: '',
-    targetFilePath: ''
+    maskRulesText: ''
   }
   dialogVisible.value = true
 }
@@ -364,6 +376,7 @@ const createTask = async () => {
       body: JSON.stringify({
         taskName: taskForm.value.taskName,
         sourceDatasourceCode: taskForm.value.sourceDatasourceCode,
+        targetDatasourceCode: taskForm.value.targetDatasourceCode,
         sourceTables: taskForm.value.sourceTables,
         targetType: taskForm.value.targetType,
         targetFilePath: taskForm.value.targetFilePath,

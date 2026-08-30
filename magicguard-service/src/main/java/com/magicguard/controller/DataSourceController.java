@@ -77,6 +77,14 @@ public class DataSourceController {
     }
 
     /**
+     * 获取数据源的所有表
+     */
+    @GetMapping("/{id}/tables")
+    public ResponseEntity<List<String>> getTables(@PathVariable Long id) {
+        return ResponseEntity.ok(datasourceService.getTables(id));
+    }
+
+    /**
      * 更新数据源
      */
     @PutMapping("/{id}")

@@ -47,7 +47,8 @@ public class MaskTaskService {
      */
     @Transactional
     public MaskTask createTask(String taskName, String sourceDatasourceCode,
-                               String targetType, String sourceTables,
+                               String targetDatasourceCode, String targetType,
+                               String sourceTables, String targetTable,
                                List<Map<String, Object>> maskRules,
                                String execType, String scheduleType,
                                String targetFilePath) {
@@ -56,10 +57,20 @@ public class MaskTaskService {
             throw new RuntimeException("源数据源不存在: " + sourceDatasourceCode);
         }
 
+        Long targetDsId = null;
+        if (targetDatasourceCode != null && !targetDatasourceCode.isEmpty()) {
+            DataSource targetDs = dataSourceService.getDatasourceByCode(targetDatasourceCode);
+            if (targetDs == null) {
+                throw new RuntimeException("目标数据源不存在: " + targetDatasourceCode);
+            }
+            targetDsId = targetDs.getId();
+        }
+
         MaskTask task = new MaskTask();
         task.setTaskName(taskName);
         task.setTaskCode("TASK_" + System.currentTimeMillis());
         task.setSourceDatasourceId(sourceDs.getId());
+        task.setTargetDatasourceId(targetDsId);
         task.setTargetType(targetType != null ? targetType : "DATABASE");
         task.setSourceTables(sourceTables);
         task.setExecType(execType != null ? execType : "FULL");

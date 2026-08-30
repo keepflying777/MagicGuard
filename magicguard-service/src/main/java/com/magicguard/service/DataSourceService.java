@@ -8,7 +8,10 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.sql.Connection;
 import java.sql.DriverManager;
+import java.sql.ResultSet;
+import java.sql.Statement;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.List;
 
 /**
@@ -117,6 +120,31 @@ public class DataSourceService {
     @Transactional
     public void deleteDatasource(Long id) {
         datasourceRepository.deleteById(id);
+    }
+
+    /**
+     * 获取数据源的所有表
+     */
+    public List<String> getTables(Long id) {
+        DataSource ds = datasourceRepository.selectById(id);
+        if (ds == null) {
+            throw new RuntimeException("数据源不存在");
+        }
+
+        List<String> tables = new ArrayList<>();
+        try {
+            String url = buildJdbcUrl(ds);
+            try (Connection conn = DriverManager.getConnection(url, ds.getUsername(), ds.getEncryptedPassword());
+                 Statement stmt = conn.createStatement();
+                 ResultSet rs = stmt.executeQuery("SHOW TABLES")) {
+                while (rs.next()) {
+                    tables.add(rs.getString(1));
+                }
+            }
+        } catch (Exception e) {
+            throw new RuntimeException("获取表列表失败: " + e.getMessage());
+        }
+        return tables;
     }
 
     /**

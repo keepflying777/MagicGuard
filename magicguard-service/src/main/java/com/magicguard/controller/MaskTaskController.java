@@ -29,6 +29,7 @@ public class MaskTaskController {
     public ResponseEntity<MaskTask> createTask(@RequestBody Map<String, Object> request) {
         String taskName = (String) request.get("taskName");
         String sourceDatasourceCode = (String) request.get("sourceDatasourceCode");
+        String targetDatasourceCode = (String) request.get("targetDatasourceCode");
         String targetType = (String) request.get("targetType");
         String sourceTables = (String) request.get("sourceTables");
         @SuppressWarnings("unchecked")
@@ -37,8 +38,8 @@ public class MaskTaskController {
         String scheduleType = (String) request.get("scheduleType");
         String targetFilePath = (String) request.get("targetFilePath");
 
-        MaskTask task = taskService.createTask(taskName, sourceDatasourceCode, targetType,
-                sourceTables, maskRules, execType, scheduleType, targetFilePath);
+        MaskTask task = taskService.createTask(taskName, sourceDatasourceCode, targetDatasourceCode,
+                targetType, sourceTables, null, maskRules, execType, scheduleType, targetFilePath);
         return ResponseEntity.ok(task);
     }
 
