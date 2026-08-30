@@ -321,4 +321,12 @@ public class MaskTaskService {
         task.setUpdateTime(LocalDateTime.now());
         taskRepository.updateById(task);
     }
+
+    /**
+     * 删除任务
+     */
+    @Transactional
+    public void deleteTask(Long id) {
+        taskRepository.deleteById(id);
+    }
 }

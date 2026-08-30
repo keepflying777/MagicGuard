@@ -86,4 +86,13 @@ public class MaskTaskController {
             return ResponseEntity.badRequest().build();
         }
     }
+
+    /**
+     * 删除任务
+     */
+    @DeleteMapping("/{id}")
+    public ResponseEntity<Void> deleteTask(@PathVariable Long id) {
+        taskService.deleteTask(id);
+        return ResponseEntity.ok().build();
+    }
 }
