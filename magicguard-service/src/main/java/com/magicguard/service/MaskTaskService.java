@@ -180,7 +180,7 @@ public class MaskTaskService {
         List<Map<String, Object>> result = new ArrayList<>();
 
         String url = buildJdbcUrl(ds);
-        try (Connection conn = DriverManager.getConnection(url, ds.getUsername(), ds.getUsername());
+        try (Connection conn = DriverManager.getConnection(url, ds.getUsername(), ds.getEncryptedPassword());
              Statement stmt = conn.createStatement();
              ResultSet rs = stmt.executeQuery("SELECT * FROM " + tableName)) {
 
@@ -258,7 +258,7 @@ public class MaskTaskService {
         sql.append("?".repeat(columns.length));
         sql.append(")");
 
-        try (Connection conn = DriverManager.getConnection(url, ds.getUsername(), ds.getUsername());
+        try (Connection conn = DriverManager.getConnection(url, ds.getUsername(), ds.getEncryptedPassword());
              PreparedStatement pstmt = conn.prepareStatement(sql.toString())) {
 
             for (Map<String, Object> row : data) {
