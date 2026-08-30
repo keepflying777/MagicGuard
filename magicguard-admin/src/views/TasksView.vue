@@ -120,6 +120,9 @@
               <el-button size="small" type="primary" plain @click="viewDetail(row)">
                 <el-icon><Document /></el-icon> 详情
               </el-button>
+              <el-button size="small" type="danger" plain @click="deleteTask(row)">
+                <el-icon><Delete /></el-icon> 删除
+              </el-button>
             </div>
           </template>
         </el-table-column>
@@ -373,6 +376,25 @@ const cancelTask = async (task) => {
 const viewDetail = (task) => {
   currentTask.value = task
   detailDialogVisible.value = true
+}
+
+const deleteTask = async (task) => {
+  try {
+    await ElMessageBox.confirm('确定要删除此任务吗？', '提示', {
+      confirmButtonText: '确定',
+      cancelButtonText: '取消',
+      type: 'warning'
+    })
+    const response = await fetch(`${API_BASE}/tasks/${task.id}`, { method: 'DELETE' })
+    if (response.ok) {
+      ElMessage.success('删除成功')
+      loadTasks()
+    }
+  } catch (error) {
+    if (error !== 'cancel') {
+      ElMessage.error('删除失败')
+    }
+  }
 }
 
 onMounted(() => {
