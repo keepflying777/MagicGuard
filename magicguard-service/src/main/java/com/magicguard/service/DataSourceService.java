@@ -59,7 +59,7 @@ public class DataSourceService {
 
         try {
             String url = buildJdbcUrl(ds);
-            try (Connection conn = DriverManager.getConnection(url, ds.getUsername(), ds.getUsername())) {
+            try (Connection conn = DriverManager.getConnection(url, ds.getUsername(), ds.getEncryptedPassword())) {
                 return conn.isValid(5);
             }
         } catch (Exception e) {
