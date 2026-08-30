@@ -109,14 +109,20 @@ start_backend() {
     nohup mvn spring-boot:run > $LOG_DIR/backend.log 2>&1 &
     echo $! > $PID_DIR/backend.pid
 
-    sleep 25
+    # 等待后端启动（最多60秒，每5秒检查一次）
+    local max_wait=60
+    local waited=0
+    while [ $waited -lt $max_wait ]; do
+        if lsof -i :8080 &> /dev/null; then
+            log_info "Backend started successfully (PID: $(cat $PID_DIR/backend.pid))"
+            return 0
+        fi
+        sleep 5
+        waited=$((waited + 5))
+    done
 
-    if curl -s http://localhost:8080/api/keys &> /dev/null; then
-        log_info "Backend started successfully (PID: $(cat $PID_DIR/backend.pid))"
-    else
-        log_error "Backend failed to start, check $LOG_DIR/backend.log"
-        return 1
-    fi
+    log_error "Backend failed to start, check $LOG_DIR/backend.log"
+    return 1
 }
 
 # 停止后端
