@@ -96,7 +96,7 @@
           </template>
         </el-table-column>
         <el-table-column prop="execTime" label="执行时间" width="170" />
-        <el-table-column label="操作" width="220" fixed="right">
+        <el-table-column label="操作" width="280" fixed="right">
           <template #default="{ row }">
             <div class="action-buttons">
               <el-button
@@ -117,7 +117,10 @@
               >
                 <el-icon><VideoPause /></el-icon> 取消
               </el-button>
-              <el-button size="small" type="primary" plain @click="viewDetail(row)">
+              <el-button size="small" type="primary" plain @click="editTask(row)">
+                <el-icon><Edit /></el-icon> 编辑
+              </el-button>
+              <el-button size="small" type="info" plain @click="viewDetail(row)">
                 <el-icon><Document /></el-icon> 详情
               </el-button>
               <el-button size="small" type="danger" plain @click="deleteTask(row)">
@@ -212,6 +215,43 @@
         <el-button @click="detailDialogVisible = false">关闭</el-button>
       </template>
     </el-dialog>
+
+    <!-- 编辑任务对话框 -->
+    <el-dialog v-model="editDialogVisible" title="编辑脱敏任务" width="600px" class="custom-dialog">
+      <el-form :model="editForm" label-width="120px" class="custom-form">
+        <el-form-item label="任务名称">
+          <el-input v-model="editForm.taskName" placeholder="请输入任务名称" />
+        </el-form-item>
+        <el-form-item label="源表名">
+          <el-input v-model="editForm.sourceTables" placeholder="多个表用逗号分隔，如: user,order" />
+        </el-form-item>
+        <el-form-item label="执行类型">
+          <el-select v-model="editForm.execType" placeholder="请选择执行类型" style="width: 100%">
+            <el-option label="全量" value="FULL" />
+            <el-option label="增量" value="INCREMENT" />
+          </el-select>
+        </el-form-item>
+        <el-form-item label="调度类型">
+          <el-select v-model="editForm.scheduleType" placeholder="请选择调度类型" style="width: 100%">
+            <el-option label="立即执行" value="IMMEDIATE" />
+            <el-option label="定时执行" value="SCHEDULED" />
+            <el-option label="周期执行" value="PERIODIC" />
+          </el-select>
+        </el-form-item>
+        <el-form-item label="脱敏规则">
+          <el-input
+            v-model="editForm.maskRulesText"
+            type="textarea"
+            :rows="4"
+            placeholder='JSON格式，如: [{"tableName": "user", "columns": [{"name": "id_card", "ruleId": 1}]}]'
+          />
+        </el-form-item>
+      </el-form>
+      <template #footer>
+        <el-button @click="editDialogVisible = false">取消</el-button>
+        <el-button type="primary" @click="updateTask">保存</el-button>
+      </template>
+    </el-dialog>
   </div>
 </template>
 
@@ -225,6 +265,7 @@ const tasks = ref([])
 const datasources = ref([])
 const dialogVisible = ref(false)
 const detailDialogVisible = ref(false)
+const editDialogVisible = ref(false)
 const currentTask = ref(null)
 
 const statusText = {
@@ -394,6 +435,58 @@ const deleteTask = async (task) => {
     if (error !== 'cancel') {
       ElMessage.error('删除失败')
     }
+  }
+}
+
+const editForm = ref({
+  id: null,
+  taskName: '',
+  sourceTables: '',
+  execType: 'FULL',
+  scheduleType: 'IMMEDIATE',
+  maskRulesText: ''
+})
+
+const editTask = (task) => {
+  editForm.value = {
+    id: task.id,
+    taskName: task.taskName,
+    sourceTables: task.sourceTables,
+    execType: task.execType || 'FULL',
+    scheduleType: task.scheduleType || 'IMMEDIATE',
+    maskRulesText: task.maskRulesJson || ''
+  }
+  editDialogVisible.value = true
+}
+
+const updateTask = async () => {
+  if (!editForm.value.taskName || !editForm.value.sourceTables) {
+    ElMessage.warning('请填写任务名称和源表')
+    return
+  }
+  try {
+    let maskRules = []
+    if (editForm.value.maskRulesText) {
+      maskRules = JSON.parse(editForm.value.maskRulesText)
+    }
+    const response = await fetch(`${API_BASE}/tasks/${editForm.value.id}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        taskName: editForm.value.taskName,
+        sourceTables: editForm.value.sourceTables,
+        execType: editForm.value.execType,
+        scheduleType: editForm.value.scheduleType,
+        maskRules: maskRules
+      })
+    })
+    if (response.ok) {
+      ElMessage.success('任务更新成功')
+      editDialogVisible.value = false
+      loadTasks()
+    }
+  } catch (error) {
+    ElMessage.error('任务更新失败: ' + error.message)
   }
 }
 

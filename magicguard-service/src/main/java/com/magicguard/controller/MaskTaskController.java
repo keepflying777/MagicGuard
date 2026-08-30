@@ -95,4 +95,20 @@ public class MaskTaskController {
         taskService.deleteTask(id);
         return ResponseEntity.ok().build();
     }
+
+    /**
+     * 更新任务
+     */
+    @PutMapping("/{id}")
+    public ResponseEntity<Void> updateTask(@PathVariable Long id, @RequestBody Map<String, Object> request) {
+        String taskName = (String) request.get("taskName");
+        String sourceTables = (String) request.get("sourceTables");
+        @SuppressWarnings("unchecked")
+        List<Map<String, Object>> maskRules = (List<Map<String, Object>>) request.get("maskRules");
+        String execType = (String) request.get("execType");
+        String scheduleType = (String) request.get("scheduleType");
+
+        taskService.updateTask(id, taskName, sourceTables, maskRules, execType, scheduleType);
+        return ResponseEntity.ok().build();
+    }
 }

@@ -329,4 +329,31 @@ public class MaskTaskService {
     public void deleteTask(Long id) {
         taskRepository.deleteById(id);
     }
+
+    /**
+     * 更新任务
+     */
+    @Transactional
+    public void updateTask(Long id, String taskName, String sourceTables,
+                           List<Map<String, Object>> maskRules,
+                           String execType, String scheduleType) {
+        MaskTask task = taskRepository.selectById(id);
+        if (task == null) {
+            throw new RuntimeException("任务不存在");
+        }
+
+        if (taskName != null) task.setTaskName(taskName);
+        if (sourceTables != null) task.setSourceTables(sourceTables);
+        if (execType != null) task.setExecType(execType);
+        if (scheduleType != null) task.setScheduleType(scheduleType);
+        if (maskRules != null) {
+            try {
+                task.setMaskRulesJson(objectMapper.writeValueAsString(maskRules));
+            } catch (Exception e) {
+                throw new RuntimeException("脱敏规则序列化失败", e);
+            }
+        }
+        task.setUpdateTime(LocalDateTime.now());
+        taskRepository.updateById(task);
+    }
 }
