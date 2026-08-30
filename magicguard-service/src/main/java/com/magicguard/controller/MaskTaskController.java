@@ -35,9 +35,10 @@ public class MaskTaskController {
         List<Map<String, Object>> maskRules = (List<Map<String, Object>>) request.get("maskRules");
         String execType = (String) request.get("execType");
         String scheduleType = (String) request.get("scheduleType");
+        String targetFilePath = (String) request.get("targetFilePath");
 
         MaskTask task = taskService.createTask(taskName, sourceDatasourceCode, targetType,
-                sourceTables, maskRules, execType, scheduleType);
+                sourceTables, maskRules, execType, scheduleType, targetFilePath);
         return ResponseEntity.ok(task);
     }
 

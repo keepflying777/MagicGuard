@@ -157,6 +157,9 @@
             <el-option label="文件" value="FILE" />
           </el-select>
         </el-form-item>
+        <el-form-item label="文件路径" v-if="taskForm.targetType === 'FILE'">
+          <el-input v-model="taskForm.targetFilePath" placeholder="不填则使用默认路径: /var/log/magicguard/exports/" />
+        </el-form-item>
         <el-form-item label="执行类型">
           <el-select v-model="taskForm.execType" placeholder="请选择执行类型" style="width: 100%">
             <el-option label="全量" value="FULL" />
@@ -295,6 +298,7 @@ const taskForm = ref({
   sourceDatasourceCode: '',
   sourceTables: '',
   targetType: 'DATABASE',
+  targetFilePath: '',
   execType: 'FULL',
   scheduleType: 'IMMEDIATE',
   maskRulesText: ''
@@ -338,7 +342,8 @@ const showCreateDialog = () => {
     targetType: 'DATABASE',
     execType: 'FULL',
     scheduleType: 'IMMEDIATE',
-    maskRulesText: ''
+    maskRulesText: '',
+    targetFilePath: ''
   }
   dialogVisible.value = true
 }
@@ -361,6 +366,7 @@ const createTask = async () => {
         sourceDatasourceCode: taskForm.value.sourceDatasourceCode,
         sourceTables: taskForm.value.sourceTables,
         targetType: taskForm.value.targetType,
+        targetFilePath: taskForm.value.targetFilePath,
         execType: taskForm.value.execType,
         scheduleType: taskForm.value.scheduleType,
         maskRules: maskRules

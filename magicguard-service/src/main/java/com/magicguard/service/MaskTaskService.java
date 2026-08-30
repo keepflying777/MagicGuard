@@ -49,7 +49,8 @@ public class MaskTaskService {
     public MaskTask createTask(String taskName, String sourceDatasourceCode,
                                String targetType, String sourceTables,
                                List<Map<String, Object>> maskRules,
-                               String execType, String scheduleType) {
+                               String execType, String scheduleType,
+                               String targetFilePath) {
         DataSource sourceDs = dataSourceService.getDatasourceByCode(sourceDatasourceCode);
         if (sourceDs == null) {
             throw new RuntimeException("源数据源不存在: " + sourceDatasourceCode);
@@ -63,6 +64,7 @@ public class MaskTaskService {
         task.setSourceTables(sourceTables);
         task.setExecType(execType != null ? execType : "FULL");
         task.setScheduleType(scheduleType != null ? scheduleType : "IMMEDIATE");
+        task.setTargetFilePath(targetFilePath);
         task.setStatus("PENDING");
         task.setNeedApproval(1);
         task.setCreateTime(LocalDateTime.now());
@@ -110,11 +112,11 @@ public class MaskTaskService {
             }
 
             // 执行脱敏
-            executeMask(task.getSourceTables(), maskRules, sourceDs, targetDs, task.getTargetType());
+            String outputPath = executeMask(task.getSourceTables(), maskRules, sourceDs, targetDs, task.getTargetType(), task.getTargetFilePath());
 
             task.setStatus("SUCCESS");
             task.setFinishTime(LocalDateTime.now());
-            task.setMessage("脱敏任务执行成功");
+            task.setMessage("脱敏任务执行成功" + (outputPath != null ? "，文件已导出: " + outputPath : ""));
         } catch (Exception e) {
             log.error("脱敏任务执行失败", e);
             task.setStatus("FAILED");
@@ -129,8 +131,9 @@ public class MaskTaskService {
     /**
      * 执行脱敏逻辑
      */
-    private void executeMask(String sourceTables, List<Map<String, Object>> maskRules,
-                            DataSource sourceDs, DataSource targetDs, String targetType) throws Exception {
+    private String executeMask(String sourceTables, List<Map<String, Object>> maskRules,
+                            DataSource sourceDs, DataSource targetDs, String targetType, String targetFilePath) throws Exception {
+        String outputPath = null;
         // 解析表名
         String[] tables = sourceTables.split(",");
 
@@ -172,10 +175,14 @@ public class MaskTaskService {
                     // 同库脱敏，直接更新源表
                     updateSource(sourceDs, tableName, data, maskedData, columnRuleMap.keySet());
                 }
+            } else if ("FILE".equals(targetType)) {
+                // 文件脱敏
+                outputPath = writeToFile(sourceDs, tableName, maskedData, targetFilePath);
             }
 
             log.info("表 {} 处理完成，共 {} 条数据", tableName, data.size());
         }
+        return outputPath;
     }
 
     /**
@@ -313,6 +320,60 @@ public class MaskTaskService {
 
             pstmt.executeBatch();
         }
+    }
+
+    /**
+     * 写入CSV文件
+     */
+    private String writeToFile(DataSource ds, String tableName, List<Map<String, Object>> data, String customPath) throws Exception {
+        if (data.isEmpty()) {
+            return null;
+        }
+
+        // 确定文件路径
+        String filePath;
+        if (customPath != null && !customPath.isEmpty()) {
+            filePath = customPath;
+        } else {
+            // 生成文件名：表名_时间戳.csv
+            String fileName = tableName + "_" + System.currentTimeMillis() + ".csv";
+            filePath = "/var/log/magicguard/exports/" + fileName;
+        }
+
+        // 确保目录存在
+        java.nio.file.Path dir = java.nio.file.Paths.get(filePath).getParent();
+        if (dir != null && !java.nio.file.Files.exists(dir)) {
+            java.nio.file.Files.createDirectories(dir);
+        }
+
+        // 写入CSV
+        Map<String, Object> firstRow = data.get(0);
+        String[] headers = firstRow.keySet().toArray(new String[0]);
+
+        try (java.io.BufferedWriter writer = new java.io.BufferedWriter(
+                new java.io.FileWriter(filePath))) {
+            // 写入表头
+            writer.write(String.join(",", headers));
+            writer.newLine();
+
+            // 写入数据行
+            for (Map<String, Object> row : data) {
+                String[] values = new String[headers.length];
+                for (int i = 0; i < headers.length; i++) {
+                    Object val = row.get(headers[i]);
+                    values[i] = val != null ? val.toString() : "";
+                    // 转义包含逗号的值
+                    if (values[i].contains(",") || values[i].contains("\"") || values[i].contains("\n")) {
+                        values[i] = "\"" + values[i].replace("\"", "\"\"") + "\"";
+                    }
+                }
+                writer.write(String.join(",", values));
+                writer.newLine();
+            }
+        }
+
+        log.info("CSV文件已导出: {}", filePath);
+        return filePath;
     }
 
     /**
