@@ -278,7 +278,10 @@ public class MaskTaskService {
         sql.append("INSERT INTO ").append(tableName).append(" (");
         sql.append(String.join(",", columns));
         sql.append(") VALUES (");
-        sql.append("?".repeat(columns.length));
+        for (int i = 0; i < columns.length; i++) {
+            if (i > 0) sql.append(",");
+            sql.append("?");
+        }
         sql.append(")");
 
         try (Connection conn = DriverManager.getConnection(url, ds.getUsername(), ds.getEncryptedPassword());
