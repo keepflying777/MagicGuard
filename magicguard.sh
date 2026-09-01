@@ -155,11 +155,29 @@ start_frontend() {
         return 0
     fi
 
-    cd $APP_DIR/magicguard-admin
-    nohup npm run dev -- --host 0.0.0.0 --port 3000 > $LOG_DIR/frontend.log 2>&1 &
-    echo $! > $PID_DIR/frontend.pid
+    # 优先使用预构建的 dist 文件夹
+    if [ -d "$APP_DIR/dist" ]; then
+        log_info "Using pre-built frontend (dist folder)"
+        cd $APP_DIR/dist
+        nohup python3 -m http.server 3000 --bind 0.0.0.0 > $LOG_DIR/frontend.log 2>&1 &
+        echo $! > $PID_DIR/frontend.pid
+    elif [ -d "$APP_DIR/magicguard-admin/dist" ]; then
+        log_info "Using pre-built frontend (magicguard-admin/dist folder)"
+        cd $APP_DIR/magicguard-admin/dist
+        nohup python3 -m http.server 3000 --bind 0.0.0.0 > $LOG_DIR/frontend.log 2>&1 &
+        echo $! > $PID_DIR/frontend.pid
+    elif [ -d "$APP_DIR/magicguard-admin" ] && [ -f "$APP_DIR/magicguard-admin/package.json" ]; then
+        # 没有预构建，使用 npm run dev（需要 Node.js）
+        log_warn "No pre-built frontend found, using dev mode (requires Node.js)"
+        cd $APP_DIR/magicguard-admin
+        nohup npm run dev -- --host 0.0.0.0 --port 3000 > $LOG_DIR/frontend.log 2>&1 &
+        echo $! > $PID_DIR/frontend.pid
+    else
+        log_error "Frontend not found"
+        return 1
+    fi
 
-    sleep 5
+    sleep 3
 
     if curl -s http://localhost:3000 &> /dev/null; then
         log_info "Frontend started successfully (PID: $(cat $PID_DIR/frontend.pid))"
@@ -185,8 +203,10 @@ stop_frontend() {
     fi
 
     # 强制停止
+    pkill -f "python3.*http.server.*3000" &> /dev/null
     pkill -f "vite" &> /dev/null
     pkill -f "esbuild" &> /dev/null
+    pkill -f "node.*3000" &> /dev/null
 }
 
 # 查看状态

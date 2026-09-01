@@ -32,8 +32,21 @@ if [ -d "../magicguard-service" ]; then
     cp -r ../magicguard-service "$PKG_DIR/app/"
 fi
 
+# 构建前端（如果 node_modules 不存在或 dist 不存在）
 if [ -d "../magicguard-admin" ]; then
-    cp -r ../magicguard-admin "$PKG_DIR/app/"
+    echo "构建前端..."
+    cd ../magicguard-admin
+    if [ ! -d "node_modules" ]; then
+        echo "安装前端依赖..."
+        npm install 2>/dev/null || true
+    fi
+    if [ ! -d "dist" ]; then
+        echo "构建前端生产版本..."
+        npm run build 2>/dev/null || true
+    fi
+    cd ../magicguard-package
+    cp -r ../magicguard-admin/dist "$PKG_DIR/app/" 2>/dev/null || true
+    cp -r ../magicguard-admin/package.json "$PKG_DIR/app/magicguard-admin/" 2>/dev/null || true
 fi
 
 if [ -f "../magicguard.sh" ]; then
