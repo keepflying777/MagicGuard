@@ -23,6 +23,11 @@ cp install.sh "$PKG_DIR/scripts/"
 cp uninstall.sh "$PKG_DIR/scripts/"
 
 echo "步骤2: 复制应用程序..."
+# 复制父 pom.xml（magicguard-service 依赖它）
+if [ -f "../pom.xml" ]; then
+    cp ../pom.xml "$PKG_DIR/app/"
+fi
+
 if [ -d "../magicguard-service" ]; then
     cp -r ../magicguard-service "$PKG_DIR/app/"
 fi
