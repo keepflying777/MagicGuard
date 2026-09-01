@@ -16,13 +16,21 @@ MagicGuard-Offline-Package/
 │   ├── magicguard.sh      # 管理脚本
 │   └── schema/            # 数据库脚本
 ├── rpms/                  # 离线依赖包
-│   └── centos/           # CentOS/Rocky 系统的 RPM 包
+│   └── centos/           # CentOS/Rocky/Kylin 系统的 RPM 包
 ├── scripts/               # 安装脚本
 │   ├── install.sh        # 在线安装脚本
 │   ├── install-offline.sh # 离线安装脚本
 │   └── uninstall.sh      # 卸载脚本
 └── README.md             # 本文件
 ```
+
+### 支持的操作系统
+
+- CentOS 7/8
+- Rocky Linux 8/9
+- RHEL 7/8
+- Kylin (麒麟)
+- NeoKylin (中标麒麟)
 
 ### 安装步骤
 

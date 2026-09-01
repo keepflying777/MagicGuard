@@ -53,11 +53,8 @@ echo "步骤3: 下载 CentOS/Rocky 离线依赖包..."
 mkdir -p "$PKG_DIR/rpms/centos"
 
 # 检查系统类型
-if command -v yum &>/dev/null; then
-    echo "使用 yum 下载依赖（需要网络）..."
-
-    # 创建 repo 缓存目录
-    mkdir -p ~/rpmbuild/{BUILD,RPMS,SOURCES,SPECS,SRPMS}
+if command -v yum &>/dev/null || command -v dnf &>/dev/null; then
+    echo "使用 dnf/yum 下载依赖（需要网络）..."
 
     # 下载 JDK 17
     echo "下载 JDK 17..."
@@ -83,7 +80,9 @@ if command -v yum &>/dev/null; then
 fi
 
 echo "步骤4: 创建离线安装脚本..."
-cat > "$PKG_DIR/scripts/install-offline.sh" << 'OFFLINE_SCRIPT'
+
+# 创建独立的离线安装脚本文件
+cat > "$PKG_DIR/scripts/install-offline.sh" << 'INNER_EOF'
 #!/bin/bash
 
 set -e
@@ -112,14 +111,39 @@ fi
 
 # 检测操作系统
 detect_os() {
-    if [ -f /etc/redhat-release ]; then
+    if [ -f /etc/kylin-release ] || grep -qi "kylin" /etc/os-release 2>/dev/null; then
+        echo "kylin"
+    elif [ -f /etc/neokylin-release ] || grep -qi "neokylin" /etc/os-release 2>/dev/null; then
+        echo "neokylin"
+    elif [ -f /etc/redhat-release ]; then
         echo "centos"
     elif [ -f /etc/rocky-release ]; then
         echo "rocky"
     elif [ -f /etc/centos-release ]; then
         echo "centos"
+    elif [ -f /etc/os-release ] && grep -qi "centos" /etc/os-release 2>/dev/null; then
+        echo "centos"
+    elif [ -f /etc/os-release ] && grep -qi "rocky" /etc/os-release 2>/dev/null; then
+        echo "rocky"
+    elif [ -f /etc/os-release ] && grep -qi "rhel" /etc/os-release 2>/dev/null; then
+        echo "rhel"
     else
         echo "unknown"
+    fi
+}
+
+# 辅助函数 - 检测依赖
+check_dependency() {
+    local cmd=$1
+    local name=$2
+
+    if command -v $cmd &>/dev/null; then
+        version=$($cmd -version 2>&1 | head -1)
+        echo -e "${GREEN}✓${NC} $name: $(echo $version | head -c 50)"
+        return 0
+    else
+        echo -e "${RED}✗${NC} $name: 未安装"
+        return 1
     fi
 }
 
@@ -127,18 +151,13 @@ OS=$(detect_os)
 echo -e "${GREEN}检测到操作系统: $OS${NC}"
 echo ""
 
-# 检查网络
-check_network() {
-    if ping -c 1 8.8.8.8 &>/dev/null; then
-        return 0
-    else
-        return 1
-    fi
-}
-
 # 安装本地 RPM 包
 install_local_rpms() {
     local rpms_dir="$SCRIPT_DIR/rpms/$OS"
+
+    if [ ! -d "$rpms_dir" ]; then
+        rpms_dir="$SCRIPT_DIR/rpms/centos"
+    fi
 
     if [ ! -d "$rpms_dir" ]; then
         echo -e "${YELLOW}未找到本地 RPM 包目录: $rpms_dir${NC}"
@@ -184,12 +203,16 @@ if ! systemctl is-active --quiet mysqld 2>/dev/null && ! systemctl is-active --q
             ;;
         2)
             echo "从网络安装 MySQL..."
-            if [ "$OS" == "centos" ] || [ "$OS" == "rocky" ]; then
-                dnf module reset mysql -y
-                dnf module enable mysql:8.0 -y
-                dnf install -y mysql-server
-                systemctl start mysqld
-                systemctl enable mysqld
+            if [ "$OS" == "centos" ] || [ "$OS" == "rocky" ] || [ "$OS" == "rhel" ] || [ "$OS" == "kylin" ] || [ "$OS" == "neokylin" ]; then
+                if command -v dnf &>/dev/null; then
+                    dnf module reset mysql -y 2>/dev/null || true
+                    dnf module enable mysql:8.0 -y 2>/dev/null || true
+                    dnf install -y mysql-server 2>/dev/null || dnf install -y mysql 2>/dev/null || true
+                elif command -v yum &>/dev/null; then
+                    yum install -y mysql-server 2>/dev/null || yum install -y mysql 2>/dev/null || true
+                fi
+                systemctl start mysqld 2>/dev/null || systemctl start mysql 2>/dev/null || true
+                systemctl enable mysqld 2>/dev/null || systemctl enable mysql 2>/dev/null || true
             fi
             ;;
         3)
@@ -246,32 +269,17 @@ echo "----------------------------------------"
 echo -e "${GREEN}安装完成!${NC}"
 echo ""
 echo "使用方法:"
-echo "  启动服务:   ${YELLOW}magicguard start${NC}"
-echo "  停止服务:   ${YELLOW}magicguard stop${NC}"
-echo "  重启服务:   ${YELLOW}magicguard restart${NC}"
-echo "  查看状态:   ${YELLOW}magicguard status${NC}"
+echo -e "  启动服务:   ${YELLOW}magicguard start${NC}"
+echo -e "  停止服务:   ${YELLOW}magicguard stop${NC}"
+echo -e "  重启服务:   ${YELLOW}magicguard restart${NC}"
+echo -e "  查看状态:   ${YELLOW}magicguard status${NC}"
 echo ""
 echo "访问地址:"
-echo "  管理控制台: ${YELLOW}http://服务器IP:3000${NC}"
-echo "  后端 API:   ${YELLOW}http://服务器IP:8080${NC}"
+echo -e "  管理控制台: ${YELLOW}http://服务器IP:3000${NC}"
+echo -e "  后端 API:   ${YELLOW}http://服务器IP:8080${NC}"
 echo ""
 echo -e "${BLUE}========================================${NC}"
-
-# 辅助函数
-check_dependency() {
-    local cmd=$1
-    local name=$2
-
-    if command -v $cmd &>/dev/null; then
-        version=$($cmd -version 2>&1 | head -1)
-        echo -e "${GREEN}✓${NC} $name: $(echo $version | head -c 50)"
-        return 0
-    else
-        echo -e "${RED}✗${NC} $name: 未安装"
-        return 1
-    fi
-}
-OFFLINE_SCRIPT
+INNER_EOF
 
 chmod +x "$PKG_DIR/scripts/install-offline.sh"
 
@@ -295,13 +303,21 @@ MagicGuard-Offline-Package/
 │   ├── magicguard.sh      # 管理脚本
 │   └── schema/            # 数据库脚本
 ├── rpms/                  # 离线依赖包
-│   └── centos/           # CentOS/Rocky 系统的 RPM 包
+│   └── centos/           # CentOS/Rocky/Kylin 系统的 RPM 包
 ├── scripts/               # 安装脚本
 │   ├── install.sh        # 在线安装脚本
 │   ├── install-offline.sh # 离线安装脚本
 │   └── uninstall.sh      # 卸载脚本
 └── README.md             # 本文件
 ```
+
+### 支持的操作系统
+
+- CentOS 7/8
+- Rocky Linux 8/9
+- RHEL 7/8
+- Kylin (麒麟)
+- NeoKylin (中标麒麟)
 
 ### 安装步骤
 
