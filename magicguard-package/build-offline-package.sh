@@ -16,7 +16,7 @@ cd "$(dirname "$0")"
 # 创建目录结构
 PKG_DIR="MagicGuard-Offline-Package"
 rm -rf "$PKG_DIR"
-mkdir -p "$PKG_DIR"/{scripts,rpms,app}
+mkdir -p "$PKG_DIR"/{scripts,rpms,app,jdk}
 
 echo "步骤1: 复制安装脚本..."
 cp install.sh "$PKG_DIR/scripts/"
@@ -67,40 +67,48 @@ if [ -f "../magicguard-service/src/main/resources/schema.sql" ]; then
     cp ../magicguard-service/src/main/resources/schema.sql "$PKG_DIR/app/schema/"
 fi
 
-echo "步骤3: 下载 CentOS/Rocky 离线依赖包..."
-mkdir -p "$PKG_DIR/rpms/centos"
+echo "步骤3: 下载离线依赖包..."
 
-# 检查系统类型
+# 下载 JDK 17（手动下载，因为Kylin源可能没有）
+echo "下载 JDK 17..."
+JDK_DIR="/tmp/jdk-17-download"
+mkdir -p "$JDK_DIR"
+cd "$JDK_DIR"
+if [ ! -f "jdk.tar.gz" ]; then
+    wget -q https://download.java.net/java/GA/jdk17.0.2/dfd4a8d0985749f896bed50d7138ee7f/8/GPL/openjdk-17.0.2_linux-x64_bin.tar.gz -O jdk.tar.gz 2>/dev/null || \
+    curl -L -o jdk.tar.gz https://github.com/adoptium/temurin17-binaries/releases/download/jdk-17.0.2%2B8/OpenJDK17U-jdk_x64_linux_hotspot_17.0.2_8.tar.gz 2>/dev/null || true
+fi
+if [ -f jdk.tar.gz ]; then
+    tar -xzf jdk.tar.gz
+    rm -rf "$PKG_DIR/jdk/jdk-17.0.2"
+    mv jdk-17.0.2 "$PKG_DIR/jdk/"
+    echo "JDK 17 下载完成"
+fi
+cd - > /dev/null
+rm -rf "$JDK_DIR"
+
+# 检查系统类型并下载RPM包
 if command -v yum &>/dev/null || command -v dnf &>/dev/null; then
-    echo "使用 dnf/yum 下载依赖（需要网络）..."
-
-    # 下载 JDK 17
-    echo "下载 JDK 17..."
-    dnf download java-17-openjdk java-17-openjdk-devel --destdir="$PKG_DIR/rpms/centos/" -y 2>/dev/null || \
-    echo "JDK 下载可能需要手动处理"
+    echo "使用 dnf/yum 下载其他依赖..."
 
     # 下载 Maven
     echo "下载 Maven..."
-    dnf download maven --destdir="$PKG_DIR/rpms/centos/" -y 2>/dev/null || \
-    echo "Maven 下载可能需要手动处理"
-
-    # 下载 Node.js 18
-    echo "下载 Node.js 18..."
-    dnf download nodejs --destdir="$PKG_DIR/rpms/centos/" -y 2>/dev/null || true
+    dnf download maven --destdir="$PKG_DIR/rpms/centos/" -y 2>/dev/null || true
 
     # 下载 Git
     echo "下载 Git..."
     dnf download git --destdir="$PKG_DIR/rpms/centos/" -y 2>/dev/null || true
 
-    # 下载 MySQL Server
-    echo "下载 MySQL Server..."
+    # 下载 MySQL/MariaDB Server
+    echo "下载 MySQL/MariaDB..."
     dnf download mysql-server --destdir="$PKG_DIR/rpms/centos/" -y 2>/dev/null || true
+    dnf download mariadb-server --destdir="$PKG_DIR/rpms/centos/" -y 2>/dev/null || true
 fi
 
 echo "步骤4: 创建离线安装脚本..."
 
-# 创建独立的离线安装脚本文件
-cat > "$PKG_DIR/scripts/install-offline.sh" << 'INNER_EOF'
+# 复制安装脚本（而不是用HEREDOC）
+cat > "$PKG_DIR/scripts/install-offline.sh" << 'INSTALL_EOF'
 #!/bin/bash
 
 set -e
@@ -169,6 +177,24 @@ OS=$(detect_os)
 echo -e "${GREEN}检测到操作系统: $OS${NC}"
 echo ""
 
+# 安装本地 JDK
+install_local_jdk() {
+    local jdk_dir="$SCRIPT_DIR/jdk"
+
+    if [ ! -d "$jdk_dir/jdk-17.0.2" ]; then
+        echo -e "${YELLOW}未找到本地 JDK 17${NC}"
+        return 1
+    fi
+
+    echo -e "${YELLOW}安装本地 JDK 17...${NC}"
+    cp -r "$jdk_dir/jdk-17.0.2" /opt/
+    echo 'export JAVA_HOME=/opt/jdk-17.0.2' > /etc/profile.d/java17.sh
+    echo 'export PATH=$JAVA_HOME/bin:$PATH' >> /etc/profile.d/java17.sh
+    chmod +x /etc/profile.d/java17.sh
+    source /etc/profile.d/java17.sh
+    echo -e "${GREEN}JDK 17 安装完成${NC}"
+}
+
 # 安装本地 RPM 包
 install_local_rpms() {
     local rpms_dir="$SCRIPT_DIR/rpms/$OS"
@@ -206,8 +232,19 @@ check_dependency mvn "Maven" || true
 check_dependency node "Node.js" || true
 check_dependency git "Git" || true
 
-if ! systemctl is-active --quiet mysqld 2>/dev/null && ! systemctl is-active --quiet mysql 2>/dev/null; then
-    echo -e "${RED}✗ MySQL: 未运行${NC}"
+if ! java -version 2>&1 | grep -q "17"; then
+    echo ""
+    echo -e "${YELLOW}JDK 17 未安装或版本不对${NC}"
+    if [ -d "$SCRIPT_DIR/jdk/jdk-17.0.2" ]; then
+        echo "从本地安装 JDK 17..."
+        install_local_jdk
+    else
+        echo -e "${RED}离线包里没有 JDK 17，请先手动安装${NC}"
+    fi
+fi
+
+if ! systemctl is-active --quiet mysqld 2>/dev/null && ! systemctl is-active --quiet mysql 2>/dev/null && ! systemctl is-active --quiet mariadb 2>/dev/null; then
+    echo -e "${RED}✗ MySQL/MariaDB: 未运行${NC}"
     echo ""
     echo "请选择安装方式:"
     echo "  1. 从本地 RPM 包安装（如果有）"
@@ -220,17 +257,17 @@ if ! systemctl is-active --quiet mysqld 2>/dev/null && ! systemctl is-active --q
             install_local_rpms
             ;;
         2)
-            echo "从网络安装 MySQL..."
+            echo "从网络安装 MySQL/MariaDB..."
             if [ "$OS" == "centos" ] || [ "$OS" == "rocky" ] || [ "$OS" == "rhel" ] || [ "$OS" == "kylin" ] || [ "$OS" == "neokylin" ]; then
                 if command -v dnf &>/dev/null; then
                     dnf module reset mysql -y 2>/dev/null || true
                     dnf module enable mysql:8.0 -y 2>/dev/null || true
-                    dnf install -y mysql-server 2>/dev/null || dnf install -y mysql 2>/dev/null || true
+                    dnf install -y mysql-server 2>/dev/null || dnf install -y mariadb-server 2>/dev/null || dnf install -y mysql 2>/dev/null || true
                 elif command -v yum &>/dev/null; then
-                    yum install -y mysql-server 2>/dev/null || yum install -y mysql 2>/dev/null || true
+                    yum install -y mysql-server 2>/dev/null || yum install -y mariadb-server 2>/dev/null || true
                 fi
-                systemctl start mysqld 2>/dev/null || systemctl start mysql 2>/dev/null || true
-                systemctl enable mysqld 2>/dev/null || systemctl enable mysql 2>/dev/null || true
+                systemctl start mysqld 2>/dev/null || systemctl start mysql 2>/dev/null || systemctl start mariadb 2>/dev/null || true
+                systemctl enable mysqld 2>/dev/null || systemctl enable mysql 2>/dev/null || systemctl enable mariadb 2>/dev/null || true
             fi
             ;;
         3)
@@ -238,7 +275,7 @@ if ! systemctl is-active --quiet mysqld 2>/dev/null && ! systemctl is-active --q
             ;;
     esac
 else
-    echo -e "${GREEN}✓ MySQL: 已运行${NC}"
+    echo -e "${GREEN}✓ MySQL/MariaDB: 已运行${NC}"
 fi
 
 echo "----------------------------------------"
@@ -267,11 +304,18 @@ echo "初始化数据库..."
 read -p "是否初始化数据库? (y/n): " -n 1 -r
 echo ""
 if [[ $REPLY =~ ^[Yy]$ ]]; then
-    mysql -u root -p -e "CREATE DATABASE IF NOT EXISTS magicguard;" 2>/dev/null || true
+    mysql -u root -e "CREATE DATABASE IF NOT EXISTS magicguard;" 2>/dev/null || true
     if [ -f "$APP_DIR/magicguard-service/src/main/resources/schema.sql" ]; then
-        mysql -u root -p magicguard < "$APP_DIR/magicguard-service/src/main/resources/schema.sql" 2>/dev/null || true
+        mysql -u root magicguard < "$APP_DIR/magicguard-service/src/main/resources/schema.sql" 2>/dev/null || true
     fi
     echo -e "${GREEN}数据库初始化完成${NC}"
+fi
+
+# 配置 application.yml 数据库密码
+if [ -f "$APP_DIR/magicguard-service/src/main/resources/application.yml" ]; then
+    echo "配置数据库连接..."
+    # 尝试设置空密码
+    sed -i 's/password: abc123../password: /' "$APP_DIR/magicguard-service/src/main/resources/application.yml" 2>/dev/null || true
 fi
 
 # 防火墙配置
@@ -297,7 +341,7 @@ echo -e "  管理控制台: ${YELLOW}http://服务器IP:3000${NC}"
 echo -e "  后端 API:   ${YELLOW}http://服务器IP:8080${NC}"
 echo ""
 echo -e "${BLUE}========================================${NC}"
-INNER_EOF
+INSTALL_EOF
 
 chmod +x "$PKG_DIR/scripts/install-offline.sh"
 
@@ -318,8 +362,10 @@ MagicGuard-Offline-Package/
 ├── app/                    # 应用程序
 │   ├── magicguard-service/ # 后端服务
 │   ├── magicguard-admin/   # 前端控制台
-│   ├── magicguard.sh      # 管理脚本
+│   ├── dist/              # 预构建前端静态文件
+│   ├── magicguard.sh       # 管理脚本
 │   └── schema/            # 数据库脚本
+├── jdk/                   # JDK 17 离线包
 ├── rpms/                  # 离线依赖包
 │   └── centos/           # CentOS/Rocky/Kylin 系统的 RPM 包
 ├── scripts/               # 安装脚本
@@ -370,7 +416,7 @@ sudo ./scripts/uninstall.sh
 
 1. 离线安装包需要与操作系统版本匹配
 2. 如果本地 RPM 包安装失败，可以选择在线安装
-3. MySQL 需要提前配置 root 密码
+3. 数据库已配置默认空密码
 
 ## 文档
 
